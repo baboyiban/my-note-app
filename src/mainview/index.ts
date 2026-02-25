@@ -90,6 +90,12 @@ function renderNotes() {
 					<div class="note-item-title">${escapeHtml(displayTitle)}</div>
 					<div class="note-item-preview">${escapeHtml(preview) || "No additional text"}</div>
 					<div class="note-item-date">${dateStr}</div>
+					<button class="delete-note-btn" title="Delete Memo" data-id="${note.id}">
+						<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+							<line x1="18" y1="6" x2="6" y2="18"></line>
+							<line x1="6" y1="6" x2="18" y2="18"></line>
+						</svg>
+					</button>
 				</div>
 			`;
 		})
@@ -97,7 +103,15 @@ function renderNotes() {
 
 	// Attach selection listeners
 	noteList.querySelectorAll(".note-item").forEach((item) => {
-		item.addEventListener("click", () => {
+		item.addEventListener("click", (e) => {
+			const target = e.target as HTMLElement;
+			const deleteBtn = target.closest(".delete-note-btn");
+			if (deleteBtn) {
+				e.stopPropagation();
+				const id = parseInt((deleteBtn as HTMLElement).dataset['id']!);
+				deleteNoteById(id);
+				return;
+			}
 			const id = parseInt((item as HTMLElement).dataset['id']!);
 			selectNote(id);
 		});
@@ -222,8 +236,14 @@ async function performSave() {
 async function deleteActiveNote() {
 	if (!activeNote) return;
 
-	await electrobun.rpc!.request.deleteNote({ id: activeNote.id });
-	clearSelection();
+	await deleteNoteById(activeNote.id);
+}
+
+async function deleteNoteById(id: number) {
+	await electrobun.rpc!.request.deleteNote({ id });
+	if (activeNote?.id === id) {
+		clearSelection();
+	}
 	await loadNotes();
 }
 
