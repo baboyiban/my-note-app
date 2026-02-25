@@ -16,6 +16,7 @@ type NoteRPC = {
 			updateNote: { params: { id: number; title: string; content: string }; response: Note };
 			deleteNote: { params: { id: number }; response: { success: boolean } };
 			getStats: { params: {}; response: { total: number } };
+			searchNotes: { params: { query: string }; response: Note[] };
 		};
 		messages: {};
 	};
@@ -34,6 +35,7 @@ const electrobun = new Electrobun.Electroview({ rpc });
 
 // DOM Elements
 const addBtn = document.getElementById("add-btn") as HTMLButtonElement;
+const searchInput = document.getElementById("search-input") as HTMLInputElement;
 const noteList = document.getElementById("note-list") as HTMLDivElement;
 const statsDiv = document.getElementById("stats") as HTMLDivElement;
 
@@ -44,24 +46,23 @@ const noteContentTextarea = document.getElementById("note-content") as HTMLTextA
 const deleteBtn = document.getElementById("delete-btn") as HTMLButtonElement;
 
 let notes: Note[] = [];
-let activeNoteId: number | null = null;
+let activeNote: Note | null = null;
 let saveTimeout: number | null = null;
+let searchTimeout: number | null = null;
 
 async function loadNotes() {
-	notes = await electrobun.rpc!.request.getNotes({});
+	const query = searchInput.value.trim();
+	if (query === "") {
+		notes = await electrobun.rpc!.request.getNotes({});
+	} else {
+		notes = await electrobun.rpc!.request.searchNotes({ query });
+	}
+
 	// Sort by updated_at descending visually
 	notes.sort((a, b) => new Date(b.updated_at + "Z").getTime() - new Date(a.updated_at + "Z").getTime());
 
 	renderNotes();
 	updateStats();
-
-	// If the active note was deleted by another process (unlikely but possible), clear selection
-	if (activeNoteId && !notes.find(n => n.id === activeNoteId)) {
-		clearSelection();
-	} else if (activeNoteId) {
-		// Update selection visually
-		renderNotes();
-	}
 }
 
 function renderNotes() {
@@ -82,7 +83,7 @@ function renderNotes() {
 			const rawContent = note.content.replace(/\s+/g, " ").trim();
 			const preview = rawContent.length > 60 ? rawContent.substring(0, 60) + "..." : rawContent;
 			const displayTitle = note.title.trim() || "New Memo";
-			const isActive = note.id === activeNoteId ? "active" : "";
+			const isActive = activeNote && note.id === activeNote.id ? "active" : "";
 
 			return `
 				<div class="note-item ${isActive}" data-id="${note.id}">
@@ -117,7 +118,7 @@ function escapeHtml(str: string): string {
 // Editor Logic
 function selectNote(id: number) {
 	// If we are selecting the exact same note, do nothing
-	if (activeNoteId === id) return;
+	if (activeNote?.id === id) return;
 
 	// Flush pending saves for the previous note immediately
 	flushSave();
@@ -125,7 +126,7 @@ function selectNote(id: number) {
 	const note = notes.find(n => n.id === id);
 	if (!note) return;
 
-	activeNoteId = id;
+	activeNote = { ...note };
 
 	// Update UI state
 	renderNotes(); // re-render to highlight active
@@ -133,13 +134,13 @@ function selectNote(id: number) {
 	emptyEditor.classList.add("hidden");
 	editorContainer.classList.remove("hidden");
 
-	noteTitleInput.value = note.title;
-	noteContentTextarea.value = note.content;
+	noteTitleInput.value = activeNote.title;
+	noteContentTextarea.value = activeNote.content;
 	noteContentTextarea.focus();
 }
 
 function clearSelection() {
-	activeNoteId = null;
+	activeNote = null;
 	renderNotes();
 	emptyEditor.classList.remove("hidden");
 	editorContainer.classList.add("hidden");
@@ -150,6 +151,8 @@ function clearSelection() {
 async function createNewNote() {
 	flushSave(); // Save any currently active note before creating a new one
 
+	searchInput.value = ""; // Clear search so new note is visible
+
 	// Default new note
 	const newNote = await electrobun.rpc!.request.addNote({ title: "", content: "" });
 	await loadNotes();
@@ -157,9 +160,20 @@ async function createNewNote() {
 	noteTitleInput.focus();
 }
 
+// Search Logic
+function handleSearch() {
+	if (searchTimeout) {
+		clearTimeout(searchTimeout);
+	}
+
+	searchTimeout = window.setTimeout(async () => {
+		await loadNotes();
+	}, 300);
+}
+
 // Auto-save debouncing
 function triggerAutoSave() {
-	if (!activeNoteId) return;
+	if (!activeNote) return;
 
 	if (saveTimeout) {
 		clearTimeout(saveTimeout);
@@ -181,24 +195,21 @@ function flushSave() {
 }
 
 async function performSave() {
-	if (!activeNoteId) return;
-
-	const note = notes.find(n => n.id === activeNoteId);
-	if (!note) return;
+	if (!activeNote) return;
 
 	const newTitle = noteTitleInput.value;
 	const newContent = noteContentTextarea.value;
 
 	// Only save if changed
-	if (note.title !== newTitle || note.content !== newContent) {
+	if (activeNote.title !== newTitle || activeNote.content !== newContent) {
 		// Optimistically update local state
-		note.title = newTitle;
-		note.content = newContent;
+		activeNote.title = newTitle;
+		activeNote.content = newContent;
 		const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
-		note.updated_at = nowStr; // rough approximation for immediate UI update
+		activeNote.updated_at = nowStr; // rough approximation for immediate UI update
 
 		await electrobun.rpc!.request.updateNote({
-			id: activeNoteId,
+			id: activeNote.id,
 			title: newTitle,
 			content: newContent
 		});
@@ -209,15 +220,16 @@ async function performSave() {
 }
 
 async function deleteActiveNote() {
-	if (!activeNoteId) return;
+	if (!activeNote) return;
 
-	await electrobun.rpc!.request.deleteNote({ id: activeNoteId });
+	await electrobun.rpc!.request.deleteNote({ id: activeNote.id });
 	clearSelection();
 	await loadNotes();
 }
 
 // Event Listeners
 addBtn.addEventListener("click", createNewNote);
+searchInput.addEventListener("input", handleSearch);
 
 noteTitleInput.addEventListener("input", triggerAutoSave);
 noteContentTextarea.addEventListener("input", triggerAutoSave);

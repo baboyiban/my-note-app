@@ -31,6 +31,7 @@ const insertNote = db.prepare("INSERT INTO notes (title, content) VALUES (?, ?) 
 const updateNote = db.prepare("UPDATE notes SET title = ?, content = ?, updated_at = datetime('now') WHERE id = ? RETURNING *");
 const deleteNote = db.prepare("DELETE FROM notes WHERE id = ?");
 const getStats = db.prepare("SELECT COUNT(*) as total FROM notes");
+const searchNotesStmt = db.prepare("SELECT * FROM notes WHERE title LIKE ? OR content LIKE ? ORDER BY updated_at DESC");
 
 type Note = {
 	id: number;
@@ -67,6 +68,10 @@ type NoteRPC = {
 				params: {};
 				response: Stats;
 			};
+			searchNotes: {
+				params: { query: string };
+				response: Note[];
+			};
 		};
 		messages: {};
 	}>;
@@ -96,6 +101,10 @@ const noteRPC = BrowserView.defineRPC<NoteRPC>({
 			getStats: () => {
 				const row = getStats.get() as any;
 				return { total: row.total };
+			},
+			searchNotes: ({ query }) => {
+				const q = "%" + query + "%";
+				return searchNotesStmt.all(q, q) as Note[];
 			},
 		},
 		messages: {},

@@ -73,6 +73,31 @@ body {
 	color: #dc2626;
 }
 
+.search-container {
+	padding: 0 20px 12px;
+}
+
+.search-input {
+	width: 100%;
+	padding: 10px 14px;
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	font-size: 0.9rem;
+	background: #fff;
+	color: #333;
+	outline: none;
+	transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input::placeholder {
+	color: #aaa;
+}
+
+.search-input:focus {
+	border-color: #666;
+	box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+}
+
 .note-list {
 	flex: 1;
 	overflow-y: auto;
