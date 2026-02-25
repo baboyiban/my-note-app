@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Note App</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Note App</h1>
+      <p class="subtitle">Powered by Bun's native SQLite</p>
+
+      <div class="input-row">
+        <input type="text" id="new-note" placeholder="Write a new note..." autofocus />
+        <button id="add-btn">Add Note</button>
+      </div>
+
+      <div class="stats" id="stats"></div>
+
+      <div id="note-list" class="note-list"></div>
+    </div>
+    <script type="module" src="index.js"></script>
+  </body>
+</html>
