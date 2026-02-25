@@ -1,25 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Note App</title>
-    <link rel="stylesheet" href="index.css" />
-  </head>
-  <body>
-    <div class="container">
-      <h1>Note App</h1>
-      <p class="subtitle">Powered by Bun's native SQLite</p>
 
-      <div class="input-row">
-        <input type="text" id="new-note" placeholder="Write a new note..." autofocus />
-        <button id="add-btn">Add Note</button>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memo App</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+
+<body>
+  <div class="app-container">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h2>Memos</h2>
+        <button id="add-btn" class="icon-btn" title="New Memo">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
       </div>
-
-      <div class="stats" id="stats"></div>
-
-      <div id="note-list" class="note-list"></div>
+      <div class="sidebar-stats" id="stats"> 0 memos </div>
+      <div id="note-list" class="note-list">
+        <!-- Note items will go here -->
+      </div>
     </div>
-    <script type="module" src="index.js"></script>
-  </body>
+    <div class="main-content">
+      <div id="empty-editor" class="empty-editor">
+        <p>Select a memo or create a new one</p>
+      </div>
+      <div id="editor-container" class="editor-container hidden">
+        <div class="editor-header">
+          <input type="text" id="note-title" placeholder="Title" />
+          <button id="delete-btn" class="icon-btn text-danger" title="Delete Memo">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="editor-body">
+          <textarea id="note-content" placeholder="Click to start typing..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="index.js"></script>
+</body>
+
 </html>
